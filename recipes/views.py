@@ -9,7 +9,7 @@ from django.core.cache import cache
 
 from .scraper import scrape_recipe
 from .ml_utils import modify_ingredients
-from .nutrition import analyze_nutrition
+from .nutrition import analyze_nutrition 
 from .models import Recipe, Favorite
 
 import traceback
@@ -183,9 +183,47 @@ def toggle_favorite(request):
 
 @login_required
 def favorite_list(request):
-    """Display user's favorite recipes"""
+    """Display user's favorite recipes and their combined nutrition"""
     favorites = Favorite.objects.filter(user=request.user).select_related('recipe')
+    
+    # Initialize total nutrition values
+    total_nutrition = {
+        'protein': 0,
+        'fat': 0,
+        'carbs': 0,
+        'fiber': 0,  # Added fiber
+        'calories': 0, # Added calories
+    }
+    
+    # Loop through all favorite recipes to get their total nutrition
+    for favorite in favorites:
+        recipe_ingredients = favorite.recipe.ingredients 
+        if recipe_ingredients:
+            nutrition_data = analyze_nutrition(recipe_ingredients)
+            total_nutrition['protein'] += nutrition_data.get('protein', 0)
+            total_nutrition['fat'] += nutrition_data.get('fat', 0)
+            total_nutrition['carbs'] += nutrition_data.get('carbs', 0)
+            total_nutrition['fiber'] += nutrition_data.get('fiber', 0)
+            total_nutrition['calories'] += nutrition_data.get('calories', 0)
+            
+    # Calculate percentages for the pie chart (only for protein, fat, and carbs)
+    total_sum = total_nutrition['protein'] + total_nutrition['fat'] + total_nutrition['carbs'] + total_nutrition['fiber'] + total_nutrition['calories']
+    if total_sum > 0:
+        total_nutrition['protein_percent'] = round((total_nutrition['protein'] / total_sum) * 100, 1)
+        total_nutrition['fat_percent'] = round((total_nutrition['fat'] / total_sum) * 100, 1)
+        total_nutrition['carbs_percent'] = round((total_nutrition['carbs'] / total_sum) * 100, 1)
+        total_nutrition['fiber_percent'] = round((total_nutrition['fiber'] / total_sum) * 100, 1)
+        total_nutrition['calories_percent'] = round((total_nutrition['calories'] / total_sum) * 100, 1)
+    else:
+        # If no recipes or no nutritional data, set percentages to 0
+        total_nutrition['protein_percent'] = 0
+        total_nutrition['fat_percent'] = 0
+        total_nutrition['carbs_percent'] = 0
+        total_nutrition['fiber_percent'] = 0
+        total_nutrition['calories_percent'] = 0
+
     context = {
-        'favorites': favorites
+        'favorites': favorites,
+        'total_nutrition': total_nutrition
     }
     return render(request, 'recipes/favorite.html', context)

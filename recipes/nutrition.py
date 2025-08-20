@@ -55,18 +55,18 @@ DETAIL_URL = 'https://api.nal.usda.gov/fdc/v1/food/'
 
 # Fallback nutrition data for common ingredients
 FALLBACK_NUTRITION = {
-    'milk': {'calories': 42, 'protein': 3.4, 'fat': 1.0, 'carbs': 5.0},
-    'flour': {'calories': 364, 'protein': 10.0, 'fat': 1.0, 'carbs': 76.0},
-    'egg': {'calories': 68, 'protein': 6.0, 'fat': 5.0, 'carbs': 1.0},
-    'butter': {'calories': 102, 'protein': 0.1, 'fat': 12.0, 'carbs': 0.0},
-    'sugar': {'calories': 387, 'protein': 0.0, 'fat': 0.0, 'carbs': 100.0},
-    'salt': {'calories': 0, 'protein': 0.0, 'fat': 0.0, 'carbs': 0.0},
-    'oil': {'calories': 884, 'protein': 0.0, 'fat': 100.0, 'carbs': 0.0},
-    'water': {'calories': 0, 'protein': 0.0, 'fat': 0.0, 'carbs': 0.0},
-    'almond milk': {'calories': 17, 'protein': 0.6, 'fat': 1.2, 'carbs': 0.3},
-    'almond flour': {'calories': 570, 'protein': 21.0, 'fat': 50.0, 'carbs': 21.0},
-    'vegan butter': {'calories': 90, 'protein': 0.0, 'fat': 10.0, 'carbs': 0.0},
-    'flaxseed meal': {'calories': 37, 'protein': 1.3, 'fat': 3.0, 'carbs': 2.0},
+    'milk': {'calories': 42, 'protein': 3.4, 'fat': 1.0, 'carbs': 5.0, 'fiber': 0.0},
+    'flour': {'calories': 364, 'protein': 10.0, 'fat': 1.0, 'carbs': 76.0, 'fiber': 2.7},
+    'egg': {'calories': 68, 'protein': 6.0, 'fat': 5.0, 'carbs': 1.0, 'fiber': 0.0},
+    'butter': {'calories': 102, 'protein': 0.1, 'fat': 12.0, 'carbs': 0.0, 'fiber': 0.0},
+    'sugar': {'calories': 387, 'protein': 0.0, 'fat': 0.0, 'carbs': 100.0, 'fiber': 0.0},
+    'salt': {'calories': 0, 'protein': 0.0, 'fat': 0.0, 'carbs': 0.0, 'fiber': 0.0},
+    'oil': {'calories': 884, 'protein': 0.0, 'fat': 100.0, 'carbs': 0.0, 'fiber': 0.0},
+    'water': {'calories': 0, 'protein': 0.0, 'fat': 0.0, 'carbs': 0.0, 'fiber': 0.0},
+    'almond milk': {'calories': 17, 'protein': 0.6, 'fat': 1.2, 'carbs': 0.3, 'fiber': 0.0},
+    'almond flour': {'calories': 570, 'protein': 21.0, 'fat': 50.0, 'carbs': 21.0, 'fiber': 10.0},
+    'vegan butter': {'calories': 90, 'protein': 0.0, 'fat': 10.0, 'carbs': 0.0, 'fiber': 0.0},
+    'flaxseed meal': {'calories': 37, 'protein': 1.3, 'fat': 3.0, 'carbs': 2.0, 'fiber': 2.8},
 }
 
 def get_fdc_id(ingredient):
@@ -131,7 +131,8 @@ def get_nutrition_from_api(fdc_id):
                 'calories': nutrients.get('Energy', 0),
                 'protein': nutrients.get('Protein', 0),
                 'fat': nutrients.get('Total lipid (fat)', 0),
-                'carbs': nutrients.get('Carbohydrate, by difference', 0)
+                'carbs': nutrients.get('Carbohydrate, by difference', 0),
+                'fiber': nutrients.get('Fiber, total', 0)
             }
         
         return None
@@ -153,11 +154,11 @@ def get_fallback_nutrition(ingredient):
             return value
     
     # Return default values if no match found
-    return {'calories': 50, 'protein': 2.0, 'fat': 1.0, 'carbs': 5.0}
+    return {'calories': 50, 'protein': 2.0, 'fat': 1.0, 'carbs': 5.0, 'fiber': 2.0}
 
 def analyze_nutrition(ingredients):
     """Analyze nutrition for a list of ingredients"""
-    total = {'calories': 0, 'protein': 0, 'fat': 0, 'carbs': 0}
+    total = {'calories': 0, 'protein': 0, 'fat': 0, 'carbs': 0 , 'fiber': 0}
     
     for ingredient in ingredients:
         nutrition = None
@@ -176,6 +177,7 @@ def analyze_nutrition(ingredients):
         total['protein'] += nutrition['protein']
         total['fat'] += nutrition['fat']
         total['carbs'] += nutrition['carbs']
+        total['fiber'] += nutrition['fiber']
         
         # Small delay to avoid overwhelming the API
         time.sleep(0.1)
@@ -185,45 +187,6 @@ def analyze_nutrition(ingredients):
     total['protein'] = round(total['protein'], 1)
     total['fat'] = round(total['fat'], 1)
     total['carbs'] = round(total['carbs'], 1)
-    
-    return total
+    total['fiber'] = round(total['fiber'], 1)
 
-# def estimate_cost(ingredients):
-#     """Estimate cost for ingredients (using fallback data)"""
-#     # Fallback price data
-#     price_dict = {
-#         'milk': 0.5,
-#         'almond milk': 0.7,
-#         'flour': 0.3,
-#         'almond flour': 0.8,
-#         'egg': 0.2,
-#         'flaxseed meal': 0.4,
-#         'butter': 0.4,
-#         'vegan butter': 0.6,
-#         'bread': 0.5,
-#         'gluten-free bread': 0.9,
-#         'sugar': 0.2,
-#         'salt': 0.1,
-#         'oil': 0.3,
-#         'water': 0.0,
-#     }
-    
-#     total_cost = 0
-#     for ingredient in ingredients:
-#         ingredient_lower = ingredient.lower()
-        
-#         # Try exact match
-#         if ingredient_lower in price_dict:
-#             total_cost += price_dict[ingredient_lower]
-#             continue
-        
-#         # Try partial matches
-#         for key, price in price_dict.items():
-#             if key in ingredient_lower or ingredient_lower in key:
-#                 total_cost += price
-#                 break
-#         else:
-#             # Default price for unknown ingredients
-#             total_cost += 0.5
-    
-#     return total_cost 
+    return total

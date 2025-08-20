@@ -7,18 +7,19 @@
     
     {% if favorites %}
         <div class="row">
+            <!-- New card for the Nutrition Pie Chart -->            
             {% for favorite in favorites %}
-                <div class="col-md-12 mb-4">
-                    <div class="card">
+                <div class=" mb-4">
+                    <div class="card ">
                         <div class="card-body">
                             <h5 class="card-title">{{ favorite.recipe.title }}</h5>
                             <p class="card-text">
                                 <strong>Ingredients:</strong> <br>
-                                {{ favorite.recipe.ingredients|join:", " }}
+                                {{ favorite.recipe.ingredients|join:", "|truncatewords:100 }}
                             </p>
                             <p class="card-text">
                                 <strong>Instructions:</strong><br>
-                                {{ favorite.recipe.instructions|truncatewords:50 }}
+                                {{ favorite.recipe.instructions|truncatewords:125 }}
                             </p>
                             <a href="{{ favorite.recipe.source_url }}" class="btn btn-primary" target="_blank">View Recipe</a>
                             <button class="btn btn-danger toggle-favorite" 
@@ -30,6 +31,20 @@
                 </div>
             {% endfor %}
         </div>
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-6  mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Nutrition Analysis</h5>
+                        <p class="card-text">
+                            This chart shows the macronutrient breakdown of all your favorite recipes combined.
+                        </p>
+                        <canvas id="nutritionPieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     {% else %}
         <div class="alert alert-info">
             <h4>No favorite recipes yet!</h4>
@@ -39,6 +54,12 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Chart.js CDN for drawing the pie chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- FIX: Correctly render the JSON data using json_script, which creates its own script tag. -->
+{{ total_nutrition|json_script:"total-nutrition-data" }}
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Handle favorite toggle buttons
@@ -62,6 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     if (!data.is_favorite) {
                         // Remove the card if removed from favorites
+                        // FIX: Corrected the CSS class from .col-md-12 to .col-md-6
                         button.closest('.col-md-6').remove();
                         
                         // Check if no favorites left
@@ -79,6 +101,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Error toggling favorite');
             });
         });
+    });
+
+    // Render the nutrition pie chart
+    // FIX: Use JSON.parse with the content from a hidden script tag to ensure correct JSON formatting
+    const totalNutrition = JSON.parse(document.getElementById('total-nutrition-data').textContent);
+    const ctx = document.getElementById('nutritionPieChart').getContext('2d');
+    
+    const myChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Protein', 'Fat', 'Carbs' , 'Fiber', 'Calories'],
+            datasets: [{
+                label: 'Total Macronutrients',
+                data: [totalNutrition.protein_percent, totalNutrition.fat_percent, totalNutrition.carbs_percent, totalNutrition.fiber_percent, totalNutrition.calories_percent],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed !== null) {
+                                label += context.parsed + '%';
+                            }
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
     });
 });
 </script>
