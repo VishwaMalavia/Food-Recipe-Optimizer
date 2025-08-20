@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}My Favorite Recipes{% endblock %}
+
+{% block content %}
+    <h1>My Favorite Recipes</h1>
+    
+    {% if favorites %}
+        <div class="row">
+            {% for favorite in favorites %}
+                <div class="col-md-12 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ favorite.recipe.title }}</h5>
+                            <p class="card-text">
+                                <strong>Ingredients:</strong> <br>
+                                {{ favorite.recipe.ingredients|join:", " }}
+                            </p>
+                            <p class="card-text">
+                                <strong>Instructions:</strong><br>
+                                {{ favorite.recipe.instructions|truncatewords:50 }}
+                            </p>
+                            <a href="{{ favorite.recipe.source_url }}" class="btn btn-primary" target="_blank">View Recipe</a>
+                            <button class="btn btn-danger toggle-favorite" 
+                                    data-recipe-id="{{ favorite.recipe.id }}">
+                                Remove from Favorites
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <h4>No favorite recipes yet!</h4>
+            <p>Start adding recipes to your favorites by clicking the favorite button on any recipe.</p>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle favorite toggle buttons
+    const toggleButtons = document.querySelectorAll('.toggle-favorite');
+    
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const recipeId = this.dataset.recipeId;
+            const button = this;
+            
+            fetch('{% url "toggle_favorite" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `recipe_id=${recipeId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (!data.is_favorite) {
+                        // Remove the card if removed from favorites
+                        button.closest('.col-md-6').remove();
+                        
+                        // Check if no favorites left
+                        const remainingCards = document.querySelectorAll('.col-md-6');
+                        if (remainingCards.length === 0) {
+                            location.reload();
+                        }
+                    }
+                } else {
+                    alert(data.message || 'Error toggling favorite');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error toggling favorite');
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

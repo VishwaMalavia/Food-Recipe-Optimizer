@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title|default:"Recipe" }}{% endblock %}
+
+{% block content %}
+    {% if success %}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a href="{% url 'index' %}" class="btn btn-secondary">Back to Search</a>
+            {% if user.is_authenticated %}
+            <button type="button"
+            class="btn {% if is_favorite %}btn-danger{% else %}btn-outline-secondary{% endif %}"
+            id="favorite-btn"
+            data-recipe-id="{{ recipe_id }}">
+            <i class="bi {% if is_favorite %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+            {% if is_favorite %}Favorited{% else %}Favorite{% endif %}
+        </button>
+        {% endif %}
+        </div>
+        <h1>{{ title }}</h1>
+
+        <h4>Original Ingredients</h4>
+        <ul>
+            {% for ing in original_ingredients %}
+                <li>{{ ing }}</li>
+            {% endfor %}
+        </ul>
+        {% if restriction %}
+        <h4>Modified Ingredients ({{ restriction|title }})</h4>
+        <ul>
+            {% for ing in modified_ingredients %}
+                <li>{{ ing }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        <h4>Instructions</h4>
+        <p>{{ instructions }}</p>
+        <h4>Nutrition (via API)</h4>
+        <ul>
+            <li>Calories: {{ nutrition.calories|default:"N/A" }}</li>
+            <li>Protein: {{ nutrition.protein|default:"N/A" }}g</li>
+            <li>Fat: {{ nutrition.fat|default:"N/A" }}g</li>
+            <li>Carbs: {{ nutrition.carbs|default:"N/A" }}g</li>
+        </ul>
+
+    {% else %}
+        <div class="alert alert-danger">
+            <h4>Error</h4>
+            <p>{{ error }}</p>
+            <a href="{% url 'index' %}" class="btn btn-primary">Try another URL</a>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const favoriteBtn = document.getElementById('favorite-btn');
+
+    if (favoriteBtn) {
+        favoriteBtn.addEventListener('click', function() {
+            const recipeId = this.dataset.recipeId;
+            const btn = this;
+
+            fetch('{% url "toggle_favorite" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `recipe_id=${recipeId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.is_favorite) {
+                        btn.className = 'btn btn-danger';
+                        btn.innerHTML = '<i class="bi bi-heart-fill"></i> Favorited';
+                    } else {
+                        btn.className = 'btn btn-outline-secondary';
+                        btn.innerHTML = '<i class="bi bi-heart"></i> Favorite';
+                    }
+                } else {
+                    alert(data.message || 'Error toggling favorite');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error toggling favorite');
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

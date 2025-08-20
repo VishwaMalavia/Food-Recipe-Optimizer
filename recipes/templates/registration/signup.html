@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign Up - Food Recipe Optimizer{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Sign Up</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                        <div class="form-text">Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email (optional)</label>
+                        <input type="email" class="form-control" id="email" name="email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="password1" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password1" name="password1" required>
+                        <div class="form-text">
+                            <ul>
+                                <li>Your password can't be too similar to your other personal information.</li>
+                                <li>Your password must contain at least 8 characters.</li>
+                                <li>Your password can't be a commonly used password.</li>
+                                <li>Your password can't be entirely numeric.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password2" class="form-label">Password Confirmation</label>
+                        <input type="password" class="form-control" id="password2" name="password2" required>
+                        <div class="form-text">Enter the same password as before, for verification.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
